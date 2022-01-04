@@ -11,6 +11,11 @@
     $mysqlDatabase = "ImageUploader";
 
 
+    //Encryption config
+    $encryptionEnable = "yes"; //If this = yes encryption enabled
+    $encryptionKey = "q2Pwkx3o63Tfks06BxZ3P5h62QLUOLBe"; //This si encryption key for encrypt and decrypt image in site
+
+
     //Connection to mysql
     $connection = mysqli_connect($mysqlIP, $mysqlUser, $mysqlPassword, $mysqlDatabase);
 
@@ -30,9 +35,18 @@
             //Generate imgSpec value
             $imgSpec = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 20);
 
-            //Get image from from file and encode to base64
-            $image = base64_encode(file_get_contents($_FILES["imageFile"]["tmp_name"]));
-            
+
+            //Check if encryption is enabled
+            if ($encryptionEnable == "yes") {
+
+                //Get image from file and encode to aes
+                $image = openssl_encrypt(file_get_contents($_FILES["imageFile"]["tmp_name"]), "aes-128-cbc", $encryptionKey);
+            } else {
+
+                //Get image from file and encode to base64
+                $image = base64_encode(file_get_contents($_FILES["imageFile"]["tmp_name"]));
+            }
+
             //Insert query to mysql table images
             $query = mysqli_query($connection, "INSERT INTO `images`(`imgSpec`, `image`) VALUES ('$imgSpec', '$image')");
             
@@ -87,11 +101,18 @@
 
                 //Get image by specID
                 $image = mysqli_fetch_assoc(mysqli_query($connection, "SELECT * FROM images WHERE imgSpec='".$imgSpec."'"));
-                
+
+                //Check if encryption is enabled and decrypt image
+                if ($encryptionEnable == "yes") {
+                    $image = base64_encode(openssl_decrypt($image["image"], "aes-128-cbc", $encryptionKey));
+                } else {
+                    $image = $image["image"];
+                }
+
                 //Print image shower
                 echo '
                     <main>
-                        <img src="data:image/jpeg;base64,'.$image["image"].'">
+                        <img src="data:image/jpeg;base64,'.$image.'">
                     </main>
                 ';
             }
