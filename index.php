@@ -6,8 +6,8 @@
 
     //Mysql config
     $mysqlIP = "localhost";
-    $mysqlUser = "root";
-    $mysqlPassword = "root";
+    $mysqlUser = "lordbecvold";
+    $mysqlPassword = "lordbecvold";
     $mysqlDatabase = "ImageUploader";
 
 
@@ -18,16 +18,39 @@
     //Upload phase
     if (isset($_POST["submit"])) {
         
-        $imgSpec = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 20);
-        $image = base64_encode(file_get_contents($_FILES["imageFile"]["tmp_name"]));
+        //Get image name
+        $name = $_FILES["imageFile"]["name"];
 
-        $query = mysqli_query($connection, "INSERT INTO `images`(`imgSpec`, `image`) VALUES ('$imgSpec', '$image')");
-        if (!$query) {
-            http_response_code(503);
-            die('The service is currently unavailable due to the inability to send requests');
+        //Extract file extension
+        $ext = end((explode(".", $name)));
+
+        //Check if file is image
+        if ($ext == "gif" or $ext == "jpg" or $ext == "jpeg" or $ext == "jfif" or $ext == "pjpeg" or $ext == "pjp" or $ext == "png" or $ext == "webp" or $ext == "bmp" or $ext == "ico") {
+
+            //Generate imgSpec value
+            $imgSpec = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 20);
+
+            //Get image from from file and encode to base64
+            $image = base64_encode(file_get_contents($_FILES["imageFile"]["tmp_name"]));
+            
+            //Insert query to mysql table images
+            $query = mysqli_query($connection, "INSERT INTO `images`(`imgSpec`, `image`) VALUES ('$imgSpec', '$image')");
+            
+            //Check if query complete
+            if (!$query) {
+                http_response_code(503);
+                die('The service is currently unavailable due to the inability to send requests');
+            }
+                
+            //Redirect to image shower
+            header("location: index.php?process=show&imgSpec=".$imgSpec);
+
+        } else {
+
+            //Print error if file != image
+            die("Error file have wrong format");
+
         }
-
-        header("location: index.php?process=show&imgSpec=".$imgSpec);
     }
 ?>
 
@@ -50,16 +73,22 @@
     </header>
     <?php
 
+        //Check if process seted and if = show
         if (!empty($_GET["process"]) && $_GET["process"] == "show") {
             
-            //get imgSpec image id
+            //get imgSpec image id and escape
             $imgSpec = htmlspecialchars(mysqli_real_escape_string($connection, $_GET["imgSpec"]), ENT_QUOTES);
+
 
             //Check if if specified
             if (empty($imgSpec)) {
                 die("Error image is not specified");
             } else {
+
+                //Get image by specID
                 $image = mysqli_fetch_assoc(mysqli_query($connection, "SELECT * FROM images WHERE imgSpec='".$imgSpec."'"));
+                
+                //Print image shower
                 echo '
                     <main>
                         <img src="data:image/jpeg;base64,'.$image["image"].'">
@@ -67,6 +96,8 @@
                 ';
             }
         } else {
+
+            //Print image upload form if process is empty
             echo '
                 <main>
                     <form action="index.php" method="post" enctype="multipart/form-data">
