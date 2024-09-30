@@ -1,73 +1,65 @@
 <?php 
-
-    //Set page headers
+    // set page headers
     header("Content-type: text/html; charset=UTF-8");
 
-
-    //Mysql config
+    // mysql config
     $mysqlIP = "localhost";
-    $mysqlUser = "lordbecvold";
-    $mysqlPassword = "lordbecvold";
+    $mysqlUser = "image-uploader";
+    $mysqlPassword = "mysqlpassword";
     $mysqlDatabase = "ImageUploader";
 
+    // encryption config
+    $encryptionEnable = "yes"; // enable image encryption
+    $encryptionKey = "q2Pwkx3o63Tfks06BxZ3P5h62QLUOLBe"; // this si encryption key for encrypt and decrypt image in site
 
-    //Encryption config
-    $encryptionEnable = "yes"; //If this = yes encryption enabled
-    $encryptionKey = "q2Pwkx3o63Tfks06BxZ3P5h62QLUOLBe"; //This si encryption key for encrypt and decrypt image in site
-
-
-    //Connection to mysql
+    // connection to mysql
     $connection = mysqli_connect($mysqlIP, $mysqlUser, $mysqlPassword, $mysqlDatabase);
 
-
-    //Upload phase
+    // upload submit 
     if (isset($_POST["submit"])) {
         
-        //Get image name
+        // get image name
         $name = $_FILES["imageFile"]["name"];
 
-        //Extract file extension
+        // extract file extension
         $ext = end((explode(".", $name)));
 
-        //Check if file is image
+        // check if file is image
         if ($ext == "gif" or $ext == "jpg" or $ext == "jpeg" or $ext == "jfif" or $ext == "pjpeg" or $ext == "pjp" or $ext == "png" or $ext == "webp" or $ext == "bmp" or $ext == "ico") {
 
-            //Generate imgSpec value
+            // generate imgSpec value
             $imgSpec = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 20);
 
-
-            //Check if encryption is enabled
+            // check if encryption is enabled
             if ($encryptionEnable == "yes") {
 
-                //Get image from file and encode to aes
+                // get image from file and encode to aes
                 $image = openssl_encrypt(file_get_contents($_FILES["imageFile"]["tmp_name"]), "aes-128-cbc", $encryptionKey);
             } else {
 
-                //Get image from file and encode to base64
+                // get image from file and encode to base64
                 $image = base64_encode(file_get_contents($_FILES["imageFile"]["tmp_name"]));
             }
 
-            //Insert query to mysql table images
+            // insert query to mysql table images
             $query = mysqli_query($connection, "INSERT INTO `images`(`imgSpec`, `image`) VALUES ('$imgSpec', '$image')");
             
-            //Check if query complete
+            // check if query complete
             if (!$query) {
                 http_response_code(503);
                 die('The service is currently unavailable due to the inability to send requests');
             }
                 
-            //Redirect to image shower
+            // redirect to image shower
             header("location: index.php?process=show&imgSpec=".$imgSpec);
 
         } else {
 
-            //Print error if file != image
+            // print error if file != image
             die("Error file have wrong format");
-
         }
     }
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -86,30 +78,28 @@
         </ul>
     </header>
     <?php
-
-        //Check if process seted and if = show
+        // check if process seted and if = show
         if (!empty($_GET["process"]) && $_GET["process"] == "show") {
             
-            //get imgSpec image id and escape
+            // get imgSpec image id and escape
             $imgSpec = htmlspecialchars(mysqli_real_escape_string($connection, $_GET["imgSpec"]), ENT_QUOTES);
 
-
-            //Check if if specified
+            // check if if specified
             if (empty($imgSpec)) {
                 die("Error image is not specified");
             } else {
 
-                //Get image by specID
+                // get image by specID
                 $image = mysqli_fetch_assoc(mysqli_query($connection, "SELECT * FROM images WHERE imgSpec='".$imgSpec."'"));
 
-                //Check if encryption is enabled and decrypt image
+                // check if encryption is enabled and decrypt image
                 if ($encryptionEnable == "yes") {
                     $image = base64_encode(openssl_decrypt($image["image"], "aes-128-cbc", $encryptionKey));
                 } else {
                     $image = $image["image"];
                 }
 
-                //Print image shower
+                // print image shower
                 echo '
                     <main>
                         <img src="data:image/jpeg;base64,'.$image.'">
@@ -118,7 +108,7 @@
             }
         } else {
 
-            //Print image upload form if process is empty
+            // print image upload form if process is empty
             echo '
                 <main>
                     <form action="index.php" method="post" enctype="multipart/form-data">
@@ -144,7 +134,7 @@
         }
     ?>
     <footer>
-        <p>Made with ❤️ By <a href="https://www.becvar.xyz">Lordbecvold</a></p>
+        <p>Made with ❤️ By <a href="https://becvar.xyz">Lukáš Bečvář</a></p>
     </footer>
     <script src="assets/main.js"></script>
 </body>
