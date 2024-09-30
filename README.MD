@@ -2,5 +2,8 @@
 Configuration:
    - Change mysql ip, user & password in index.php
 
+## End of support
+This project is no longer being maintained or developed, and no further updates or support will be provided.
+
 ## License
-The framework is open-sourced software licensed under the [MIT license](https://github.com/lukasbecvar/image-uploader/blob/main/LICENSE)
+The project is open-sourced software licensed under the [MIT license](https://github.com/lukasbecvar/image-uploader/blob/main/LICENSE)
